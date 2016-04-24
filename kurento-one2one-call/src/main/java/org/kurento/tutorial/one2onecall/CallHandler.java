@@ -16,6 +16,7 @@
 package org.kurento.tutorial.one2onecall;
 
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.kurento.client.EventListener;
@@ -33,6 +34,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /**
@@ -74,6 +77,13 @@ public class CallHandler extends TextWebSocketHandler {
           handleErrorResponse(t, session, "registerResponse");
         }
         break;
+      case "getUserList":
+          try {
+            getUserList(user, session, jsonMessage);
+          } catch (Throwable t) {
+            handleErrorResponse(t, session, "getUserListResponse");
+          }
+          break;
       case "call":
         try {
           call(user, jsonMessage);
@@ -93,6 +103,7 @@ public class CallHandler extends TextWebSocketHandler {
         }
         break;
       }
+      
       case "stop":
         stop(session);
         break;
@@ -112,24 +123,40 @@ public class CallHandler extends TextWebSocketHandler {
     session.sendMessage(new TextMessage(response.toString()));
   }
 
-  private void register(WebSocketSession session, JsonObject jsonMessage) throws IOException {
-    String name = jsonMessage.getAsJsonPrimitive("name").getAsString();
-
-    UserSession caller = new UserSession(session, name);
-    String responseMsg = "accepted";
-    if (name.isEmpty()) {
-      responseMsg = "rejected: empty user name";
-    } else if (registry.exists(name)) {
-      responseMsg = "rejected: user '" + name + "' already registered";
-    } else {
-      registry.register(caller);
-    }
+  private void getUserList(UserSession caller, WebSocketSession session, JsonObject jsonMessage) throws IOException {
+	JsonArray jsonArray = new JsonArray();
+	
+	Enumeration<String> names = registry.getAllUserName();
+	
+	while(names.hasMoreElements()) {
+		jsonArray.add(names.nextElement());
+	}
+	
 
     JsonObject response = new JsonObject();
-    response.addProperty("id", "registerResponse");
-    response.addProperty("response", responseMsg);
+    response.addProperty("id", "getUserListResponse");
+    response.add("response", jsonArray);
     caller.sendMessage(response);
   }
+  
+  private void register(WebSocketSession session, JsonObject jsonMessage) throws IOException {
+	    String name = jsonMessage.getAsJsonPrimitive("name").getAsString();
+
+	    UserSession caller = new UserSession(session, name);
+	    String responseMsg = "accepted";
+	    if (name.isEmpty()) {
+	      responseMsg = "rejected: empty user name";
+	    } else if (registry.exists(name)) {
+	      responseMsg = "rejected: user '" + name + "' already registered";
+	    } else {
+	      registry.register(caller);
+	    }
+
+	    JsonObject response = new JsonObject();
+	    response.addProperty("id", "registerResponse");
+	    response.addProperty("response", responseMsg);
+	    caller.sendMessage(response);
+	  }
 
   private void call(UserSession caller, JsonObject jsonMessage) throws IOException {
     String to = jsonMessage.get("to").getAsString();

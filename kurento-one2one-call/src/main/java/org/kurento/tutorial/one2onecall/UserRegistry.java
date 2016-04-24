@@ -15,6 +15,9 @@
 
 package org.kurento.tutorial.one2onecall;
 
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.web.socket.WebSocketSession;
@@ -56,6 +59,14 @@ public class UserRegistry {
       usersBySessionId.remove(session.getId());
     }
     return user;
+  }
+  
+  public Enumeration<String> getAllUserName() {
+	  
+	  return usersByName.keys();
+	  
+		 
+	  
   }
 
 }
